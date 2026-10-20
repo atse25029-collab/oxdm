@@ -14,6 +14,7 @@ class OxdmApplication : Application() {
         // Initialize the native oxdm engine in application context
         val dbDir = filesDir.resolve("db").apply { mkdirs() }
         OxdmBridge.initialize(dbDir.absolutePath)
+        com.oxdm.app.service.ClipboardMonitorService.start(this)
     }
 
     private fun createNotificationChannels() {
