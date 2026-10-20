@@ -1,5 +1,8 @@
 [workspace]
-members = ["testserver"]
+members = [
+    "testserver",
+    "crates/oxdm-mobile",
+]
 
 [package]
 name = "oxdm"

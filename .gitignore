@@ -28,3 +28,12 @@ PLAN.md
 .visual-test/
 findings
 todo
+# Android build artifacts
+.gradle/
+build/
+**/build/
+local.properties
+*.apk
+*.aab
+.cxx/
+
