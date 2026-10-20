@@ -1,18 +1,33 @@
 package com.oxdm.app.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Layers
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,6 +55,9 @@ import com.oxdm.app.ui.components.JobItemCard
 @Composable
 fun MainDashboardScreen(
     onOpenBrowser: () -> Unit,
+    onSetDefaultBrowser: () -> Unit,
+    onRequestNotificationListener: () -> Unit,
+    onRequestOverlay: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val jobs by OxdmBridge.jobs.collectAsState()
@@ -62,7 +80,7 @@ fun MainDashboardScreen(
                 title = { Text("oxdm") },
                 actions = {
                     IconButton(onClick = onOpenBrowser) {
-                        Icon(Icons.Default.Language, contentDescription = "In-App Browser")
+                        Icon(Icons.Default.Language, contentDescription = "Open In-App Kiwi Browser", tint = MaterialTheme.colorScheme.primary)
                     }
                     if (activeCount > 0) {
                         IconButton(onClick = { jobs.forEach { if (it.phase == JobPhase.Downloading) OxdmBridge.pauseJob(it.id) } }) {
@@ -88,6 +106,55 @@ fun MainDashboardScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            // Interception Quick Control Banner
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 6.dp)
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.ElectricBolt, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = "Universal Download Interception",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                    Text(
+                        text = "Capture downloads automatically from Chrome & external apps:",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        FilledTonalButton(
+                            onClick = onOpenBrowser,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Kiwi Browser", style = MaterialTheme.typography.labelSmall)
+                        }
+                        FilledTonalButton(
+                            onClick = onRequestNotificationListener,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Snatch Chrome", style = MaterialTheme.typography.labelSmall)
+                        }
+                        FilledTonalButton(
+                            onClick = onRequestOverlay,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Overlay Bubble", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+            }
+
             PrimaryTabRow(selectedTabIndex = selectedTab) {
                 tabs.forEachIndexed { index, title ->
                     Tab(

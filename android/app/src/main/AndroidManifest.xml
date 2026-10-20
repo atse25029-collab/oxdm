@@ -13,7 +13,7 @@
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
-    <!-- System Overlay Permission (for instant floating quick-download dialog) -->
+    <!-- System Overlay Permission (for floating quick-download bubble) -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <!-- Storage Permissions: All Files Access (Android 11+) and legacy storage -->
@@ -46,44 +46,39 @@
         <activity
             android:name=".ui.AddDownloadActivity"
             android:exported="true"
+            android:label="Download with oxdm"
             android:theme="@style/Theme.Oxdm.Transparent"
             android:windowSoftInputMode="adjustResize"
             android:excludeFromRecents="true">
-            <!-- Share Target Intent Filter -->
-            <intent-filter>
+            <!-- Share Target Intent Filter for Chrome and all apps -->
+            <intent-filter android:label="Download with oxdm">
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
+                <data android:mimeType="*/*" />
             </intent-filter>
-            <!-- Catch all HTTP / HTTPS download links -->
+            <!-- Catch all direct HTTP / HTTPS downloadable file extensions -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="http" />
                 <data android:scheme="https" />
-                <data android:mimeType="application/*" />
-                <data android:mimeType="video/*" />
-                <data android:mimeType="audio/*" />
-                <data android:mimeType="image/*" />
-            </intent-filter>
-            <!-- Catch file extensions directly -->
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="http" />
-                <data android:scheme="https" />
+                <data android:host="*" />
                 <data android:pathPattern=".*\\.zip" />
                 <data android:pathPattern=".*\\.rar" />
                 <data android:pathPattern=".*\\.7z" />
                 <data android:pathPattern=".*\\.tar" />
+                <data android:pathPattern=".*\\.gz" />
                 <data android:pathPattern=".*\\.apk" />
                 <data android:pathPattern=".*\\.iso" />
+                <data android:pathPattern=".*\\.bin" />
+                <data android:pathPattern=".*\\.exe" />
+                <data android:pathPattern=".*\\.dmg" />
+                <data android:pathPattern=".*\\.pdf" />
                 <data android:pathPattern=".*\\.mp4" />
                 <data android:pathPattern=".*\\.mkv" />
                 <data android:pathPattern=".*\\.mp3" />
-                <data android:pathPattern=".*\\.pdf" />
             </intent-filter>
             <!-- Magnet and torrent protocol schemes -->
             <intent-filter>
@@ -94,6 +89,7 @@
             </intent-filter>
         </activity>
 
+        <!-- Main Foreground Service -->
         <service
             android:name=".service.DownloadForegroundService"
             android:exported="false"
@@ -103,6 +99,22 @@
         <service
             android:name=".service.ClipboardMonitorService"
             android:exported="false" />
+
+        <!-- Floating On-Screen Download Bubble Service -->
+        <service
+            android:name=".service.FloatingDownloadBubbleService"
+            android:exported="false" />
+
+        <!-- Notification Listener Service to catch Chrome/browser downloads -->
+        <service
+            android:name=".service.DownloadNotificationInterceptorService"
+            android:label="oxdm Download Snatcher"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
 
     </application>
 
