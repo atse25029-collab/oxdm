@@ -1,7 +1,9 @@
-# oxdm installer — Windows (PowerShell 5+).
+﻿# oxdm installer — Windows (PowerShell 5+).
 #
 # Usage:
 #   irm https://raw.githubusercontent.com/jd1378/oxdm/main/tools/install.ps1 | iex
+#   # Or install from local build:
+#   .\tools\install.ps1 -Local
 #
 # Optional env vars (set before piping):
 #   $env:OXDM_INSTALL_DIR  = "C:\Tools\oxdm"     # default: %LOCALAPPDATA%\Programs\oxdm
@@ -10,7 +12,9 @@
 [CmdletBinding()]
 param(
   [string]$Dir = $env:OXDM_INSTALL_DIR,
-  [string]$Version = $env:OXDM_VERSION
+  [string]$Version = $env:OXDM_VERSION,
+  [string]$SourceDir,
+  [switch]$Local
 )
 
 $ErrorActionPreference = 'Stop'
@@ -50,6 +54,81 @@ function Install-Binary($src, $name) {
     catch { Move-Item -LiteralPath $old -Destination $dst -Force; throw }
   }
   Ok "installed: $dst"
+}
+
+# Check if local binaries should be installed
+$localBin = $null
+if ($Local -or $SourceDir) {
+  $searchDir = if ($SourceDir) { $SourceDir } else { (Join-Path $PSScriptRoot '..\target\release') }
+  if (Test-Path (Join-Path $searchDir 'oxdm.exe')) {
+    $localBin = $searchDir
+  } else {
+    Fail "local oxdm.exe not found in $searchDir"
+  }
+} elseif (-not $env:OXDM_VERSION -and (Test-Path 'target\release\oxdm.exe')) {
+  $localBin = (Resolve-Path 'target\release').Path
+}
+
+if ($localBin) {
+  Step "Installing from local build: $localBin"
+  $oxdm = Get-ChildItem -Path $localBin -File -Filter 'oxdm.exe' | Select-Object -First 1
+  $host_ = Get-ChildItem -Path $localBin -File -Filter 'oxdm-native-host.exe' | Select-Object -First 1
+  if (-not $oxdm) { Fail "oxdm.exe not found in $localBin" }
+
+  if (Get-OxdmProcess) {
+    Step 'Stopping oxdm'
+    try {
+      $q = Start-Process -FilePath (Join-Path $Dir 'oxdm.exe') -ArgumentList '--quit' -WindowStyle Hidden -PassThru
+      $null = $q.WaitForExit(10000)
+      $deadline = (Get-Date).AddSeconds(10)
+      while ((Get-OxdmProcess | Where-Object ProcessName -eq 'oxdm') -and (Get-Date) -lt $deadline) {
+        Start-Sleep -Milliseconds 250
+      }
+    } catch {
+      Warn "could not ask oxdm to quit: $($_.Exception.Message)"
+    }
+    Get-OxdmProcess | Stop-Process -Force -ErrorAction SilentlyContinue
+    Ok 'oxdm stopped'
+  }
+
+  Step "Installing to $Dir"
+  if (-not (Test-Path $Dir)) { New-Item -ItemType Directory -Path $Dir | Out-Null }
+  Install-Binary $oxdm.FullName 'oxdm.exe'
+  if ($host_) {
+    Install-Binary $host_.FullName 'oxdm-native-host.exe'
+  }
+
+  # Add to user PATH if missing.
+  $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+  if (-not ($userPath -split ';' | Where-Object { $_ -ieq $Dir })) {
+    [Environment]::SetEnvironmentVariable('Path', "$userPath;$Dir", 'User')
+    Ok "added $Dir to user PATH (open a new terminal to use 'oxdm')"
+  }
+
+  # Start menu shortcut.
+  try {
+    $startMenu = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs'
+    $lnk = Join-Path $startMenu 'oxdm.lnk'
+    $w = New-Object -ComObject WScript.Shell
+    $s = $w.CreateShortcut($lnk)
+    $s.TargetPath = (Join-Path $Dir 'oxdm.exe')
+    $s.IconLocation = (Join-Path $Dir 'oxdm.exe') + ',0'
+    $s.Save()
+    Ok "start-menu shortcut: $lnk"
+  } catch {
+    Warn "could not create start-menu shortcut: $($_.Exception.Message)"
+  }
+
+  # Register browser integration
+  try {
+    & (Join-Path $Dir 'oxdm.exe') --install-native-host
+    Ok "registered native messaging host with browsers"
+  } catch {
+    Warn "could not register browser native messaging host: $($_.Exception.Message)"
+  }
+
+  Ok 'done. Run: oxdm'
+  return
 }
 
 Step 'Detecting platform'

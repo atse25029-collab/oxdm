@@ -37,3 +37,7 @@ local.properties
 *.aab
 .cxx/
 
+
+# Installer output directory
+dist/
+

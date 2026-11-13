@@ -16,6 +16,7 @@
 //! same thing in all three cases: put the old version back and say so.
 
 use std::path::Path;
+#[cfg(not(windows))]
 use std::process::Command;
 
 /// Could this machine even ask? Answered before anything is staged, so
